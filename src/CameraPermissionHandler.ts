@@ -1,6 +1,3 @@
-import ts from "typescript";
-import EventTypesRegistry = ts.server.EventTypesRegistry;
-
 const resolution16By9Table = {
   '4k': {
     height: 4096,
@@ -128,135 +125,10 @@ export class CameraPermissionHandler {
   private emit<K extends keyof EventDataMap>(
       eventName: K,
       data: EventDataMap[K]
-  ): void  {
+  )  {
       this.events[eventName].forEach((listener: (data: EventDataMap[K]) => void) => {
         listener(data); // Invoke listener with the correct type
       });
-  }
-  public async initHandler(constraints: MediaStreamConstraints = { video: GlobalIdealCameraConstraints }): Promise<CameraRequestAcceptedWrapper | CameraRequestDeniedWrapper> {
-    try {
-      const onLoadPermissionState = await this.getCameraPermissionState();
-      if(onLoadPermissionState === BrowserPermissionState.Denied) {
-        //TODO check anyways(?) since the worst would it being denied instantly
-        const deniedOnLoad: CameraRequestDeniedWrapper = {
-          permissionState: BrowserPermissionState.Denied,
-          retryable: { value: PermissionsRetryable.No, detail: null },
-          deniedBy: BrowserDeniedReason.Browser,
-          request: null,
-          permissionGranted: false
-        };
-        return deniedOnLoad;
-      //return { ...this.showManualEnableMock(CameraError.BrowserDenied), };
-      }
-      if(onLoadPermissionState === BrowserPermissionState.Granted) {
-        const test = await this.getVideoDevicePermissionWrapper(constraints);
-        if(!test.permissionGranted) {
-        //TODO handle generic error not related to permission
-          console.log(test);
-          throw new Error('State is granted, but camera gave error. THIS IS MOST LIKELY BECUASE CAMERA ALREADY IN USE');
-        }
-        this.videoDevices = test.result.devices;
-        this.emit('video-devicelist-update', this.videoDevices);
-        const grantedOnLoad: CameraRequestAcceptedWrapper = {
-          permissionGranted: true,
-          permissionState: BrowserPermissionState.Granted,
-          request: test
-        };
-        return grantedOnLoad;
-      }
-      //state === prompt
-      const promptResponse = await this.getVideoDevicePermissionWrapper(constraints);
-      this.onLoadPermissionResult = {
-        duration: promptResponse.duration,
-        response: promptResponse,
-        postRequestState: promptResponse.permissionState.postRequest
-      };
-      if(promptResponse.permissionGranted) {
-      //this.videoElementId = elementId;
-        const grantedOnRequest: CameraRequestAcceptedWrapper= {
-          permissionGranted: true,
-          permissionState: BrowserPermissionState.Granted,
-          request: promptResponse
-        };
-        this.videoDevices = promptResponse.result.devices;
-        this.emit('video-devicelist-update', this.videoDevices);
-        return grantedOnRequest;//await this.startCameraAfterSuccessfulPrompt(promptResponse.result.stream, promptResponse.result.devices); //handleOnLoadPermissionSuccess()
-      }
-      //same as: await this.handleOnloadPermissionFailure({ permissionFailureTimeMs: endPromptTimer });
-
-      if(!promptResponse.permissionGranted) {
-
-        //find out if request was temporarily denied or
-        //if(permState === 'granted') throw new Error('State granted in failure handler');
-        const rejectedReason = this.cameraPermissionDeniedReason(promptResponse.duration);
-        if(promptResponse.permissionState.postRequest === BrowserPermissionState.Denied) {
-          const deniedOnPromptNoRetry: CameraRequestDeniedWrapper = {
-            permissionGranted: false,
-            deniedBy: rejectedReason,
-            permissionState: BrowserPermissionState.Denied,
-            retryable: { value: PermissionsRetryable.No, detail: null },
-            request: promptResponse
-          };
-          return deniedOnPromptNoRetry;
-        }
-        //Prompt is retryable
-        const browserRejected = rejectedReason === BrowserDeniedReason.Browser;
-        const browserRejectedOnLoad = this.onLoadPermissionResult && this.onLoadPermissionResult.duration && this.cameraPermissionDeniedReason(this.onLoadPermissionResult.duration) === BrowserDeniedReason.Browser;
-        const onLoadRequestRetryable = this.onLoadPermissionResult && this.onLoadPermissionResult.postRequestState === BrowserPermissionState.Prompt;
-        if(browserRejectedOnLoad && onLoadRequestRetryable && browserRejected) {
-        //This edgecase appears on firefox mobile, where it seems like the browser permission variable for the camera is not updated correctly.
-        //We check if the browser has rejected the camera onLoad and what the retry-state was after the rejection.
-        //if the state is "prompt", meaning the browser says it allows another prompt, but the new prompt is rejected by the browser again,
-        // we can assume that the state being "prompt" is incorrectly reported and that we are NOT allowed to prompt
-          const deniedOnPromptFirefoxEdgecase: CameraRequestDeniedWrapper = {
-            permissionGranted: false,
-            deniedBy: BrowserDeniedReason.Browser,
-            retryable: { value: PermissionsRetryable.No, detail: null },
-            permissionState: BrowserPermissionState.Denied,
-            //if Permissionstate was already denied, no request will be sent => null
-            request: promptResponse
-          };
-          return deniedOnPromptFirefoxEdgecase;
-        //return this.showManualEnableMock(CameraError.BrowserDenied);
-        }
-
-
-        if(rejectedReason === BrowserDeniedReason.Browser) {
-          const deniedOnPromptBrowser: CameraRequestDeniedWrapper = {
-            permissionGranted: false,
-            deniedBy: BrowserDeniedReason.Browser,
-            retryable: { value: PermissionsRetryable.AfterReload, detail: this.getReloadButtonType().result },
-            permissionState: await this.getCameraPermissionState(),
-            //if Permissionstate was already denied, no request will be sent => null
-            request: promptResponse
-          };
-          return deniedOnPromptBrowser;
-        //return this.showManualReloadMock(CameraError.BrowserDenied);
-        }
-        const deniedOnPromptUser: CameraRequestDeniedWrapper = {
-          permissionGranted: false,
-          deniedBy: BrowserDeniedReason.User,
-          retryable: { value: PermissionsRetryable.Yes, detail: null },
-          permissionState: await this.getCameraPermissionState(),
-          //if Permissionstate was already denied, no request will be sent => null
-          request: promptResponse
-        };
-        return deniedOnPromptUser;
-        //return this.showPleaseAcceptMock(CameraError.UserDenied);
-      /*if(promptResponse.permissionState.postRequest === BrowserPermissionState.Denied) {
-        return this.showManualEnableMock();
-      }
-      else if(promptResponse.permissionState.postRequest === BrowserPermissionState.Prompt) {
-
-        return this.showPleaseAcceptMock();
-      }*/
-      }
-    //TODO check for Camera already running
-    throw new Error('Unexpected behavior on init' + String(await this.getCameraPermissionState()));
-    }
-    catch(e) {
-      throw new Error('Error internal init:' + String(e));
-    }
   }
   public async getCameraPermissionState(): Promise<BrowserPermissionState> {
     try {
@@ -279,7 +151,7 @@ export class CameraPermissionHandler {
   }
 
   public async cycleCamera() {
-    // TODO finsih this
+    // TODO finish this
     const state = await this.getCameraPermissionState();
     if(state === BrowserPermissionState.Denied) {
       return;
@@ -298,7 +170,6 @@ export class CameraPermissionHandler {
         currentIndex = index;
       }
     });
-    //toast.add({ severity: 'info', summary: JSON.stringify(videoDevices.value, null, 3) });
     if(currentIndex === null) {
       const test = this.getPreferredCamera(this.videoDevices);
       return await this.startCamera(test.id);
@@ -482,37 +353,6 @@ export class CameraPermissionHandler {
       };
     }
   }
-  /*
-  private async startCameraAfterSuccessfulPrompt(streamInput: MediaStream, devices: MediaDeviceInfo[]) {
-    console.log(devices);
-    const preferred = this.getPreferredCamera(devices);
-    console.log(preferred);
-    const cameraId = preferred.id;
-    this.selectedDeviceId = cameraId;
-    const constraints = {
-      video: {
-        deviceId: { exact: cameraId }
-      }
-    };
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    this.emit('log','here');
-    this.activeStreams.set(cameraId, stream);
-
-    //TODO implement handler that does html element assignment on its own
-
-    const returnobject: startCameraReturn = {
-      eventName: 'camera-started',
-      permissionState: BrowserPermissionState.Granted,
-      requestResult: {
-        permissionGranted: true,
-        devices,
-        stream,
-      }
-    };
-    this.emit('camera-started', returnobject);
-    return returnobject;
-    //toast.add({ severity: 'success', summary: 'Camera started' });
-  }*/
   public getMediaDeviceByStream(stream: MediaStream) {
     const videoTrack = stream.getVideoTracks()[0];
     const videoDeviceId = videoTrack ? videoTrack.getSettings() : null;
@@ -660,145 +500,142 @@ export class CameraPermissionHandler {
     }
     return result;
   }*/
-}
-/*
-const test = new CameraPermissionHandler()
-test.on('video-devicelist-update', (n) => {
+  public async initHandler(constraints: MediaStreamConstraints = { video: GlobalIdealCameraConstraints }): Promise<CameraRequestAcceptedWrapper | CameraRequestDeniedWrapper | 'unknown-state'> {
+    const onLoadPermissionState = await this.getCameraPermissionState();
+    const onLoadPermissionResult = await this.getVideoDevicePermissionWrapper(constraints);
+    this.onLoadPermissionResult = {
+      duration: onLoadPermissionResult.duration,
+      response: onLoadPermissionResult,
+      postRequestState: onLoadPermissionResult.permissionState.postRequest
+    };
 
-})*/
+    if(onLoadPermissionState === BrowserPermissionState.Denied) {
+      return this.permissionDeniedHandler(onLoadPermissionResult)
+    }
+    if(onLoadPermissionState === BrowserPermissionState.Granted) {
+      return this.permissionGrantedHandler(onLoadPermissionResult)
+    }
+    if(onLoadPermissionState === BrowserPermissionState.Prompt) {
+      return this.permissionPromptHandler(onLoadPermissionResult)
+    }
+    if(onLoadPermissionState === BrowserPermissionState.Error) {
+      //TODO Write handler for this
+    }
+    return 'unknown-state'
+
+  }
+
+  private permissionGrantedHandler(request: SuccessfulCameraRequest | FailedCameraRequest): CameraRequestDeniedWrapper | CameraRequestAcceptedWrapper | 'unknown-state' {
+    if(request.permissionGranted) {
+      this.videoDevices = request.result.devices;
+      this.emit('video-devicelist-update', this.videoDevices);
+      const grantedOnLoad: CameraRequestAcceptedWrapper = {
+        permissionGranted: true,
+        permissionState: BrowserPermissionState.Granted,
+        request: request
+      };
+      return grantedOnLoad;
+    }
+    if(!request.permissionGranted) {
+      throw new Error('State is granted, but camera gave error. THIS IS MOST LIKELY BECAUSE CAMERA ALREADY IN USE');
+    }
+    return 'unknown-state'
+  }
+  private permissionDeniedHandler(request: SuccessfulCameraRequest | FailedCameraRequest): CameraRequestDeniedWrapper | CameraRequestAcceptedWrapper | 'unknown-state' {
+    if(!request.permissionGranted) {
+
+      const deniedOnLoad: CameraRequestDeniedWrapper = {
+        permissionState: BrowserPermissionState.Denied,
+        retryable: {value: PermissionsRetryable.No, detail: null},
+        deniedBy: BrowserDeniedReason.Browser, //this.getRejectedReason(onLoadPermissionResult.duration),
+        request: request,
+        permissionGranted: false
+      };
+      return deniedOnLoad;
+    }
+    if(request.permissionGranted) {
+      const grantedOnDeniedState: CameraRequestAcceptedWrapper = {
+        permissionGranted: true,
+        permissionState: request.permissionState.postRequest,
+        request: request
+      }
+      return grantedOnDeniedState
+    }
+    return 'unknown-state'
+  }
+  private permissionPromptHandler(request: SuccessfulCameraRequest | FailedCameraRequest): CameraRequestDeniedWrapper | CameraRequestAcceptedWrapper | 'unknown-state' {
+    const rejectedReason =  this.cameraPermissionDeniedReason(request.duration)
+    if(!request.permissionGranted && request.permissionState.postRequest === BrowserPermissionState.Denied) {
+      //non-retryable
+      const deniedOnPromptNoRetry: CameraRequestDeniedWrapper = {
+        permissionGranted: false,
+        deniedBy: rejectedReason,
+        permissionState: BrowserPermissionState.Denied,
+        retryable: { value: PermissionsRetryable.No, detail: null },
+        request: request
+      };
+      return deniedOnPromptNoRetry;
+    }
+    //firefox edgecase
+    const browserRejected = rejectedReason === BrowserDeniedReason.Browser;
+    const browserRejectedOnLoad = this.onLoadPermissionResult && typeof this.onLoadPermissionResult.duration === 'number' && this.cameraPermissionDeniedReason(this.onLoadPermissionResult.duration) === BrowserDeniedReason.Browser;
+    const onLoadRequestRetryable = this.onLoadPermissionResult && this.onLoadPermissionResult.postRequestState === BrowserPermissionState.Prompt;
+    const firefoxEdgecase = browserRejectedOnLoad && onLoadRequestRetryable && browserRejected
+
+    if(!request.permissionGranted && firefoxEdgecase) {
+      const deniedOnPromptFirefoxEdgecase: CameraRequestDeniedWrapper = {
+        permissionGranted: false,
+        deniedBy: BrowserDeniedReason.Browser,
+        retryable: { value: PermissionsRetryable.No, detail: null },
+        permissionState: BrowserPermissionState.Denied,
+        //if Permissionstate was already denied, no request will be sent => null
+        request: request
+      };
+      return deniedOnPromptFirefoxEdgecase;
+    }
+    if(!request.permissionGranted && rejectedReason === BrowserDeniedReason.Browser) {
+      const deniedOnPromptBrowser: CameraRequestDeniedWrapper = {
+        permissionGranted: false,
+        deniedBy: BrowserDeniedReason.Browser,
+        retryable: { value: PermissionsRetryable.AfterReload, detail: this.getReloadButtonType().result },
+        permissionState: request.permissionState.postRequest,
+        //if Permissionstate was already denied, no request will be sent => null
+        request: request
+      };
+      return deniedOnPromptBrowser;
+      //return this.showManualReloadMock(CameraError.BrowserDenied);
+    }
+    if(!request.permissionGranted && rejectedReason === BrowserDeniedReason.User) {
+      const deniedOnPromptUser: CameraRequestDeniedWrapper = {
+        permissionGranted: false,
+        deniedBy: BrowserDeniedReason.User,
+        retryable: {value: PermissionsRetryable.Yes, detail: null},
+        permissionState: request.permissionState.postRequest,
+        //if Permissionstate was already denied, no request will be sent => null
+        request: request
+      };
+      return deniedOnPromptUser;
+    }
+    if(request.permissionGranted) {
+      const acceptedOnPrompt: CameraRequestAcceptedWrapper = {
+        permissionGranted: true,
+        permissionState: request.permissionState.postRequest,
+        request: request,
+      }
+      return acceptedOnPrompt
+    }
+    return 'unknown-state'
+  }
+
+
+}
+
+
 // TODO include navigator.permissions.query({ name: 'camera' }).onchange(() => { })
-//TODO research always request camera permission, even if permission already denied onload. This results in a request/result object every time
 
 
 
 
 
-
-async function initHandler(constraints: MediaStreamConstraints = { video: GlobalIdealCameraConstraints }): Promise<CameraRequestAcceptedWrapper | CameraRequestDeniedWrapper | 'unknown-state'> {
-  const onLoadPermissionState = await this.getCameraPermissionState();
-  const onLoadPermissionResult = await this.getVideoDevicePermissionWrapper(constraints);
-  this.onLoadPermissionResult = {
-    duration: onLoadPermissionResult.duration,
-    response: onLoadPermissionResult,
-    postRequestState: onLoadPermissionResult.permissionState.postRequest
-  };
-
-  if(onLoadPermissionState === BrowserPermissionState.Denied) {
-    return permissionDeniedHandler(onLoadPermissionResult)
-  }
-  if(onLoadPermissionState === BrowserPermissionState.Granted) {
-    return permissionGrantedHandler(onLoadPermissionResult)
-  }
-  if(onLoadPermissionState === BrowserPermissionState.Prompt) {
-    return permissionPromptHandler(onLoadPermissionResult)
-  }
-  if(onLoadPermissionState === BrowserPermissionState.Error) {
-    //TODO Write handler for this
-  }
-  return 'unknown-state'
-
-}
-
-function permissionGrantedHandler(request: SuccessfulCameraRequest | FailedCameraRequest): CameraRequestDeniedWrapper | CameraRequestAcceptedWrapper | 'unknown-state' {
- if(request.permissionGranted) {
-   this.videoDevices = request.result.devices;
-   this.emit('video-devicelist-update', this.videoDevices);
-   const grantedOnLoad: CameraRequestAcceptedWrapper = {
-     permissionGranted: true,
-     permissionState: BrowserPermissionState.Granted,
-     request: request
-   };
-   return grantedOnLoad;
- }
-  if(!request.permissionGranted) {
-    throw new Error('State is granted, but camera gave error. THIS IS MOST LIKELY BECAUSE CAMERA ALREADY IN USE');
-  }
-  return 'unknown-state'
-}
-function permissionDeniedHandler(request: SuccessfulCameraRequest | FailedCameraRequest): CameraRequestDeniedWrapper | CameraRequestAcceptedWrapper | 'unknown-state' {
-  if(!request.permissionGranted) {
-
-    const deniedOnLoad: CameraRequestDeniedWrapper = {
-      permissionState: BrowserPermissionState.Denied,
-      retryable: {value: PermissionsRetryable.No, detail: null},
-      deniedBy: BrowserDeniedReason.Browser, //this.getRejectedReason(onLoadPermissionResult.duration),
-      request: request,
-      permissionGranted: false
-    };
-    return deniedOnLoad;
-  }
-  if(request.permissionGranted) {
-    const grantedOnDeniedState: CameraRequestAcceptedWrapper = {
-      permissionGranted: true,
-      permissionState: request.permissionState.postRequest,
-      request: request
-    }
-    return grantedOnDeniedState
-  }
-  return 'unknown-state'
-}
-function permissionPromptHandler(request: SuccessfulCameraRequest | FailedCameraRequest): CameraRequestDeniedWrapper | CameraRequestAcceptedWrapper | 'unknown-state' {
-  const rejectedReason =  this.cameraPermissionDeniedReason(request.duration)
-  if(!request.permissionGranted && request.permissionState.postRequest === BrowserPermissionState.Denied) {
-    //non-retryable
-    const deniedOnPromptNoRetry: CameraRequestDeniedWrapper = {
-      permissionGranted: false,
-      deniedBy: rejectedReason,
-      permissionState: BrowserPermissionState.Denied,
-      retryable: { value: PermissionsRetryable.No, detail: null },
-      request: request
-    };
-    return deniedOnPromptNoRetry;
-  }
-  //firefox edgecase
-  const browserRejected = rejectedReason === BrowserDeniedReason.Browser;
-  const browserRejectedOnLoad = this.onLoadPermissionResult && typeof this.onLoadPermissionResult.duration === 'number' && this.cameraPermissionDeniedReason(this.onLoadPermissionResult.duration) === BrowserDeniedReason.Browser;
-  const onLoadRequestRetryable = this.onLoadPermissionResult && this.onLoadPermissionResult.postRequestState === BrowserPermissionState.Prompt;
-  const firefoxEdgecase = browserRejectedOnLoad && onLoadRequestRetryable && browserRejected
-
-  if(!request.permissionGranted && firefoxEdgecase) {
-    const deniedOnPromptFirefoxEdgecase: CameraRequestDeniedWrapper = {
-      permissionGranted: false,
-      deniedBy: BrowserDeniedReason.Browser,
-      retryable: { value: PermissionsRetryable.No, detail: null },
-      permissionState: BrowserPermissionState.Denied,
-      //if Permissionstate was already denied, no request will be sent => null
-      request: request
-    };
-    return deniedOnPromptFirefoxEdgecase;
-  }
-  if(!request.permissionGranted && rejectedReason === BrowserDeniedReason.Browser) {
-    const deniedOnPromptBrowser: CameraRequestDeniedWrapper = {
-      permissionGranted: false,
-      deniedBy: BrowserDeniedReason.Browser,
-      retryable: { value: PermissionsRetryable.AfterReload, detail: this.getReloadButtonType().result },
-      permissionState: request.permissionState.postRequest,
-      //if Permissionstate was already denied, no request will be sent => null
-      request: request
-    };
-    return deniedOnPromptBrowser;
-    //return this.showManualReloadMock(CameraError.BrowserDenied);
-  }
-  if(!request.permissionGranted && rejectedReason === BrowserDeniedReason.User) {
-    const deniedOnPromptUser: CameraRequestDeniedWrapper = {
-      permissionGranted: false,
-      deniedBy: BrowserDeniedReason.User,
-      retryable: {value: PermissionsRetryable.Yes, detail: null},
-      permissionState: request.permissionState.postRequest,
-      //if Permissionstate was already denied, no request will be sent => null
-      request: request
-    };
-    return deniedOnPromptUser;
-  }
-  if(request.permissionGranted) {
-    const acceptedOnPrompt: CameraRequestAcceptedWrapper = {
-      permissionGranted: true,
-      permissionState: this.getCameraPermissionState(),
-      request: request
-    }
-    return acceptedOnPrompt
-  }
-  return 'unknown-state'
-}
 
 

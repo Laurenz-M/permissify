@@ -521,7 +521,6 @@ export class CameraPermissionHandler {
       //TODO Write handler for this
     }
     return 'unknown-state'
-
   }
 
   private permissionGrantedHandler(request: SuccessfulCameraRequest | FailedCameraRequest): CameraRequestDeniedWrapper | CameraRequestAcceptedWrapper | 'unknown-state' {

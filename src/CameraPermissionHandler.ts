@@ -481,7 +481,6 @@ export class CameraPermissionHandler {
         return this.showPleaseAcceptMock();
       }*/
     }
-    //TODO check for Camera already running
     throw new Error('Unexpected behavior on init' + String(await this.getCameraPermissionState()));
   }
 
@@ -537,7 +536,15 @@ export class CameraPermissionHandler {
       return grantedOnLoad;
     }
     if(!request.permissionGranted) {
-      throw new Error('State is granted, but camera gave error. THIS IS MOST LIKELY BECAUSE CAMERA ALREADY IN USE');
+      //throw new Error('State is granted, but camera gave error. THIS IS MOST LIKELY BECAUSE CAMERA ALREADY IN USE');
+      const startCameraError: CameraRequestDeniedWrapper = {
+        deniedBy: this.cameraPermissionDeniedReason(request.duration),
+        permissionGranted: false,
+        permissionState: request.permissionState.postRequest,
+        request: request,
+        retryable: { value: PermissionsRetryable.Yes, detail: null }
+      }
+      return startCameraError
     }
     return 'unknown-state'
   }
@@ -632,6 +639,7 @@ export class CameraPermissionHandler {
 
 
 // TODO include navigator.permissions.query({ name: 'camera' }).onchange(() => { })
+// TODO include navigator.mediaDevices.deviceChange(() => { }) handler
 
 
 

@@ -8,6 +8,7 @@
 <body style="margin: 0">
 <div class="site-container">
     <div class="camera-stream-container">
+        <div id="resolution" style="position: absolute; top: 0;"></div>
         <canvas id="canvas"></canvas>
         <video
         id="video"
@@ -15,7 +16,7 @@
         muted
         playsinline
         disablepictureinpicture
-        style="background-color:black; object-fit: cover; width: 100%; height: 100%; overflow: hidden; margin: 0px; border: 0px solid red"></video>
+        style="background-color:black; object-fit: contain; width: 100%; height: 100%; overflow: hidden; margin: 0px; border: 0px solid red"></video>
     </div>
     <div class="camera-overlay" style="display: grid; grid-template-rows: 1fr auto">
         <div style="display: grid; place-items: center;">
@@ -25,16 +26,16 @@
         </div>
         <div class="overlay-navbar" style="z-index:1; display: grid; grid-template-columns: 1fr 1fr 1fr">
             <div style="display: grid; place-items: center">
-                <div id="photo-list-container" style=" border-radius: 5px; border: 2px solid white; overflow: hidden; aspect-ratio: 1/1; width: 50%">
-                    <img id="photo-list-image" style="width: 100%; object-fit: cover; border: 0px transparent"/>
+                <div id="photo-list-container" style=" border-radius: 5px; border: 2px solid white; overflow: hidden; aspect-ratio: 1/1; width: 50%; max-width: 100px">
+                    <img id="photo-list-image" style="width: 100%; height: 100%; object-fit: cover; border: 0px transparent"/>
                 </div>
             </div>
             <div style="display: grid; place-items: center">
-                <div id="photo-button" style="display: grid; place-items: center; background-color: red; padding: 20px; aspect-ratio: 1/1; border-radius: 100%">
-                    Foto
-                </div>
+                <div id="photo-button" style="width: 40px; display: grid; place-items: center; background-color: white; padding: 20px; aspect-ratio: 1/1; border-radius: 100%"></div>
             </div>
-            <div></div>
+            <div style="display: grid; place-items: center">
+                <div id="flip-button" style="width: 15px; display: grid; place-items: center; background-color: dimgray; padding: 20px; aspect-ratio: 1/1; border-radius: 100%"></div>
+            </div>
         </div>
     </div>
     <div style="position: absolute; top: 0;height: 100%; width: 100%; z-index: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);">
@@ -61,16 +62,28 @@
     </div>
 </div>
 <script type="module">
+    import {CameraPermissionHandler} from "../dist/CameraPermissionHandler.js";
     const images = []
     let photoButtonLocked = false
-    import {CameraPermissionHandler} from "../dist/CameraPermissionHandler.js";
+    const visualCameraMode = 'cover'
+    const handler = new CameraPermissionHandler()
     async function init() {
-        console.log('test')
-        const idealCameraConstraints = { video: { height: { ideal: window.innerHeight * 2 }, facingMode: { ideal: 'environment' } } };
-        const handler = new CameraPermissionHandler()
+        const resolution = document.getElementById('resolution')
+        const photoButton = document.getElementById('photo-button')
+        photoButton.addEventListener('click', takePicture)
+        const flipButton = document.getElementById('flip-button')
+        flipButton.addEventListener('click', flipCamera)
+        const photoListContainer = document.getElementById('photo-list-container')
+        photoListContainer.addEventListener('click', openPhotoList)
+        const tray = document.getElementById('pictures-tray')
+        const trayClose = document.getElementById('picture-tray-close-button')
+        trayClose.addEventListener('click', () => { tray.style.visibility = 'hidden' })
+        console.log('test', navigator.mediaCapabilities)
+        const idealCameraConstraints = { video: { height: { ideal: 1920/*window.innerHeight*2*/ }, facingMode: { ideal: 'environment' } }, width: {ideal: 1080/*window.innerWidth*/}, }; //, audio: true };
         const res = await handler.initHandler(idealCameraConstraints)
         console.log(res)
         if(!res.permissionGranted) {
+            photoButtonLocked = true
             return
         }
         const videoElem = document.getElementById('video')
@@ -78,13 +91,13 @@
         videoElem.srcObject = res.request.result.stream
         const settings = res.request.result.stream.getVideoTracks()[0].getSettings();
         console.log(settings);
-        const photoButton = document.getElementById('photo-button')
-        photoButton.addEventListener('click', takePicture)
-        const photoListContainer = document.getElementById('photo-list-container')
-        photoListContainer.addEventListener('click', openPhotoList)
-        const tray = document.getElementById('pictures-tray')
-        const trayClose = document.getElementById('picture-tray-close-button')
-        trayClose.addEventListener('click', () => { tray.style.visibility = 'hidden' })
+
+        const resolutionString = document.createElement('p')
+        const string = `windowRes: ${window.innerWidth}x${window.innerHeight} </br> streamRes: ${settings.width}x${settings.height}`
+        //resolutionString.innerHTML
+        resolution.style.color = 'red'
+        resolution.innerHTML = string
+        videoElem.style.objectFit = visualCameraMode
         //setTimeout(animatePhoto, 3000)
     }
     init()
@@ -96,6 +109,8 @@
         },100)
     }
     function takePicture() {
+        //console.log('init',handler.startCamera())
+        console.log('test')
         if(photoButtonLocked) return
         photoButtonLocked = true
         cameraShutterEffect()
@@ -107,12 +122,12 @@
         const context = canvas.getContext("2d");
         const videoWidth = video.videoWidth;
         const videoHeight = video.videoHeight;
-        canvas.width = window.innerWidth; // or any specific value for 9:16 screen
-        canvas.height = videoHeight //720//window.innerHeight; // or any specific value
+        canvas.width = videoWidth//window.innerWidth; // or any specific value for 9:16 screen
+        canvas.height = videoHeight//window.innerHeight//videoHeight //720//window.innerHeight; // or any specific value
 
 
         const cropX = (videoWidth - canvas.width) / 2
-
+            alert(`width: ${canvas.width}, height: ${canvas.height}, videoheight: ${videoHeight}`)
             context.drawImage(video, cropX, 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
 
             const data = canvas.toBlob((blob) => {
@@ -126,7 +141,7 @@
                 setTimeout(animatePhoto, 200)
                 //setTimeout(,2000)
                 //animatePhoto()
-                //link.click();
+                link.click();
             },"image/png");
             //photo.setAttribute("src", data);
     }
@@ -148,7 +163,7 @@
             //reset preview
             updateVisualPhotoList()
             resetPhotoPreview(preview)
-            previewImg.src = undefined
+            previewImg.src = ''
             photoButtonLocked = false
         }, duration * 1000)
     }
@@ -177,11 +192,11 @@
     }
     function updateVisualPhotoList() {
         const listImg = document.getElementById('photo-list-image')
-        listImg.src = URL.createObjectURL(images[images.length - 1])
+        listImg.src = URL.createObjectURL(images[images.length - 1]) ?? ''
     }
     function openPhotoList() {
         const photoListImage = document.getElementById('photo-list-image')
-        console.log(photoListImage.src)
+        console.log(photoListImage.src, images)
         const picturesTray = document.getElementById('pictures-tray')
         const picturesTrayWrapper = document.getElementById('pictures-tray-wrapper')
         picturesTray.style.visibility = 'visible'
@@ -198,10 +213,14 @@
                     picturesTray.style.visibility = 'hidden'
                     const photoListImage = document.getElementById('photo-list-image')
                     photoListImage.src = ''
+                    //photoListImage.style.visibility = 'hidden'
                 }
             })
             picturesTrayWrapper.appendChild(newImg)
         }
+    }
+    function flipCamera() {
+
     }
 </script>
 </body>

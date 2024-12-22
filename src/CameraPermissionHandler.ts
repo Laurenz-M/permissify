@@ -95,11 +95,15 @@ export enum BrowserType {
     Safari = 'Safari',
     Unknown = 'Unknown'
 }
-const EventRegistry = ['video-devicelist-update', 'log'] as const
+const EventRegistry = ['video-devicelist-update', 'log', 'permission-status-change'] as const
 
 type EventDataMap = {
   'video-devicelist-update': MediaDeviceInfo[]; // Example: Array of video devices
-  'log': string; // Example: Log data
+  'log': string; // Example: Log data,
+  'permission-status-change': {
+    detail: string,
+    state: BrowserPermissionState
+  }
 };
 type EventListeners = {
   [K in typeof EventRegistry[number]]: Array<(data: EventDataMap[K]) => void>;
@@ -136,7 +140,7 @@ export class CameraPermissionHandler {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       const perm = await navigator.permissions.query({ name: 'camera' });
-      console.log('permname',perm.name)
+      //console.log('permname',perm.name)
       if(perm.state === 'granted'){
         return {
           state: BrowserPermissionState.Granted,
@@ -513,6 +517,53 @@ export class CameraPermissionHandler {
     if(devices.successful && devices.result.length === 0) {
       return CameraInitError.NoDevices
     }
+    if(navigator.mediaDevices.ondevicechange === null) {
+      navigator.mediaDevices.ondevicechange = async () => {
+        const devices = await this.getDevicesWrapper()
+        if(devices.successful) {
+          this.emit('video-devicelist-update', devices.result)
+        }
+      }
+      this.emit('log', 'Installed camera-device-change watcher')
+    }
+    if(navigator.permissions.query) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const state = await navigator.permissions.query({ name: 'camera' })
+      state.onchange = async () => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          const perm = await navigator.permissions.query({ name: 'camera' });
+          //console.log('permname',perm.name)
+          if(perm.state === 'granted'){
+            this.emit('permission-status-change', {
+              state: BrowserPermissionState.Granted,
+              detail: 'Requests for camera access will be granted immediately'
+            })
+          }
+          else if(perm.state === 'denied') {
+            this.emit('permission-status-change', {
+              state: BrowserPermissionState.Denied,
+              detail: 'Requests will be denied immediately'
+            })
+          }
+          else {
+            this.emit('permission-status-change', {
+              state: BrowserPermissionState.Prompt,
+              detail: 'Requests will trigger a prompt to the user. The users input decides if access is allowed or not'
+            })
+          }
+        } catch (e) {
+          this.emit('permission-status-change', {
+            state: BrowserPermissionState.Error,
+            detail: String(e)
+          })
+        }
+      }
+      this.emit('log', 'Installed camera-browser-permission watcher')
+    }
+
     const onLoadPermissionState = (await this.getCameraPermissionState()).state;
     const onLoadPermissionResult = await this.getVideoDevicePermissionWrapper(constraints);
     this.onLoadPermissionResult = {
@@ -549,7 +600,6 @@ export class CameraPermissionHandler {
       return grantedOnLoad;
     }
     if(!request.permissionGranted) {
-      console.log('here')
       //throw new Error('State is granted, but camera gave error. THIS IS MOST LIKELY BECAUSE CAMERA ALREADY IN USE');
       request.result.mappedError = CameraInitError.InUse
       const startCameraError: CameraRequestDeniedWrapper = {
@@ -660,7 +710,6 @@ export class CameraPermissionHandler {
     return CameraInitError.UnknownError
   }
   private permissionErrorhandler(request: SuccessfulCameraRequest | FailedCameraRequest): CameraRequestDeniedWrapper | CameraRequestAcceptedWrapper |  CameraInitError.UnknownError {
-    console.log('here')
     if(request.permissionGranted) {
       const acceptedOnError: CameraRequestAcceptedWrapper = {
         permissionGranted: true,
@@ -683,14 +732,3 @@ export class CameraPermissionHandler {
   }
 
 }
-
-
-// TODO include navigator.permissions.query({ name: 'camera' }).onchange(() => { })
-// TODO include navigator.mediaDevices.deviceChange(() => { }) handler
-
-
-
-
-
-
-

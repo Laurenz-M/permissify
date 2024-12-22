@@ -68,6 +68,9 @@
     const visualCameraMode = 'cover'
     const handler = new CameraPermissionHandler()
     async function init() {
+        handler.on('permission-status-change', (d) => console.log('CHANGE', d))
+        handler.on('video-devicelist-update', (d) => console.log('CHANGE', d))
+        handler.on('log', (logmsg) => console.log(logmsg))
         const resolution = document.getElementById('resolution')
         const photoButton = document.getElementById('photo-button')
         photoButton.addEventListener('click', takePicture)

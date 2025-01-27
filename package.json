@@ -1,9 +1,13 @@
 {
-  "name": "Permissify",
+  "name": "permissify",
   "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "prepublish": "tsc",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Laurenz-M/permissify.git"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsc && npm run http && npm run loclx && timeout /t 3 && npm run open_browser",

@@ -1,4 +1,4 @@
-const resolution16By9Table = {
+export const resolution16By9Table = {
   '4k': {
     height: 4096,
     width: 2160
@@ -8,7 +8,7 @@ const resolution16By9Table = {
     width: 720
   }
 } as const;
-const GlobalIdealCameraConstraints = {
+export const GlobalIdealCameraConstraints = {
   height: { ideal: resolution16By9Table['720p'].height },
   width: { ideal: resolution16By9Table['720p'].width },
   facingMode: { ideal: 'environment' },
@@ -95,7 +95,7 @@ export enum BrowserType {
     Safari = 'Safari',
     Unknown = 'Unknown'
 }
-const EventRegistry = ['video-devicelist-update', 'log', 'permission-status-change'] as const
+export const EventRegistry = ['video-devicelist-update', 'log', 'permission-status-change'] as const
 
 type EventDataMap = {
   'video-devicelist-update': Map<string, MediaDeviceInfo>; // Example: Array of video devices

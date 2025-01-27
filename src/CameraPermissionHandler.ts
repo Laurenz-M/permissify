@@ -14,7 +14,7 @@ const GlobalIdealCameraConstraints = {
   facingMode: { ideal: 'environment' },
   frameRate: { ideal: 60 }
 };
-interface FailedCameraRequest {
+export interface FailedCameraRequest {
   permissionState: {
     preRequest: BrowserPermissionState,
     postRequest: BrowserPermissionState
@@ -23,11 +23,11 @@ interface FailedCameraRequest {
   result: { originalError: string, mappedError: CameraInitError },
   duration: number
 }
-interface SuccessfulCameraRequestResult {
+export interface SuccessfulCameraRequestResult {
   stream: MediaStream,
   devices: MediaDeviceInfo[]
 }
-interface SuccessfulCameraRequest {
+export interface SuccessfulCameraRequest {
   permissionState: {
     preRequest: BrowserPermissionState,
     postRequest: BrowserPermissionState
@@ -36,20 +36,20 @@ interface SuccessfulCameraRequest {
   result: SuccessfulCameraRequestResult,
   duration: number
 }
-interface RequestRetryableBasic {
+export interface RequestRetryableBasic {
   value: PermissionsRetryable.Yes | PermissionsRetryable.No,
   detail: null
 }
-type RequestRetryableAfterReload = {
+export type RequestRetryableAfterReload = {
   value: PermissionsRetryable.AfterReload,
   detail: 'browser-button' | 'any-button'
 }
-type RequestRetryableUnknown = {
+export type RequestRetryableUnknown = {
   value: PermissionsRetryable.Unknown,
   detail: null
 }
-type RequestRetryableWithDetail = RequestRetryableUnknown | RequestRetryableAfterReload
-interface CameraRequestDeniedWrapper {
+export type RequestRetryableWithDetail = RequestRetryableUnknown | RequestRetryableAfterReload
+export interface CameraRequestDeniedWrapper {
   permissionGranted: false,
   deniedBy: BrowserDeniedReason,
   retryable: RequestRetryableBasic | RequestRetryableWithDetail,
@@ -57,7 +57,7 @@ interface CameraRequestDeniedWrapper {
   //if Permissionstate was already denied, no request will be sent => null
   request: null | FailedCameraRequest
 }
-interface CameraRequestAcceptedWrapper {
+export interface CameraRequestAcceptedWrapper {
   permissionGranted: true,
   permissionState: BrowserPermissionState,
   request: SuccessfulCameraRequest
@@ -72,12 +72,12 @@ export enum CameraInitError {
   BrowserApiInaccessible = 'BrowserApiInaccessible',
   NoDevices = 'NoDevices'
 }
-enum BrowserDeniedReason {
+export enum BrowserDeniedReason {
     Browser = 'Browser',
     User = 'User'
 }
 
-enum BrowserPermissionState {
+export enum BrowserPermissionState {
     Granted = 'Granted',
     Denied = 'Denied',
     Prompt = 'Prompt',
@@ -98,7 +98,7 @@ export enum BrowserType {
 const EventRegistry = ['video-devicelist-update', 'log', 'permission-status-change'] as const
 
 type EventDataMap = {
-  'video-devicelist-update': MediaDeviceInfo[]; // Example: Array of video devices
+  'video-devicelist-update': Map<string, MediaDeviceInfo>; // Example: Array of video devices
   'log': string; // Example: Log data,
   'permission-status-change': {
     detail: string,
@@ -111,7 +111,7 @@ type EventListeners = {
 export class CameraPermissionHandler {
   public onLoadPermissionResult: null | { duration: number, response: SuccessfulCameraRequest | FailedCameraRequest, postRequestState: BrowserPermissionState } = null;
   public selectedDeviceId: string | null = null;
-  public videoDevices: MediaDeviceInfo[] = [];
+  public videoDevices: Map<string,MediaDeviceInfo> = new Map();
   public activeStreams: Map<string,MediaStream> = new Map();
   //public videoElementId: string | null = null;
   public events: EventListeners;
@@ -127,10 +127,7 @@ export class CameraPermissionHandler {
   ) {
     this.events[eventName].push(listener)
   }
-  private emit<K extends keyof EventDataMap>(
-      eventName: K,
-      data: EventDataMap[K]
-  )  {
+  private emit<K extends keyof EventDataMap>(eventName: K, data: EventDataMap[K])  {
       this.events[eventName].forEach((listener: (data: EventDataMap[K]) => void) => {
         listener(data); // Invoke listener with the correct type
       });
@@ -517,11 +514,20 @@ export class CameraPermissionHandler {
     if(devices.successful && devices.result.length === 0) {
       return CameraInitError.NoDevices
     }
+    if(devices.successful && devices.result.length > 0) {
+      devices.result.forEach(dev => {
+        this.videoDevices.set(dev.deviceId, dev)
+      })
+      this.emit('video-devicelist-update', this.videoDevices)
+    }
     if(navigator.mediaDevices.ondevicechange === null) {
       navigator.mediaDevices.ondevicechange = async () => {
         const devices = await this.getDevicesWrapper()
         if(devices.successful) {
-          this.emit('video-devicelist-update', devices.result)
+          devices.result.forEach(dev => {
+            this.videoDevices.set(dev.deviceId, dev)
+          })
+          this.emit('video-devicelist-update', this.videoDevices)
         }
       }
       this.emit('log', 'Installed camera-device-change watcher')
@@ -590,7 +596,9 @@ export class CameraPermissionHandler {
 
   private permissionGrantedHandler(request: SuccessfulCameraRequest | FailedCameraRequest): CameraRequestDeniedWrapper | CameraRequestAcceptedWrapper | CameraInitError.UnknownError {
     if(request.permissionGranted) {
-      this.videoDevices = request.result.devices;
+      request.result.devices.forEach(dev => {
+        this.videoDevices.set(dev.deviceId, dev)
+      })
       this.emit('video-devicelist-update', this.videoDevices);
       const grantedOnLoad: CameraRequestAcceptedWrapper = {
         permissionGranted: true,

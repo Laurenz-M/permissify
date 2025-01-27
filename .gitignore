@@ -1,3 +1,6 @@
 node_modules
 dist
 *.xml
+.idea
+test
+jest.config.js

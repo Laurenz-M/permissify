@@ -23,16 +23,6 @@ export const GlobalIdealCameraConstraints = {
     facingMode: { ideal: 'environment' },
     frameRate: { ideal: 60 }
 };
-export var CameraInitError;
-(function (CameraInitError) {
-    CameraInitError["PermissionDenied"] = "PermissionDenied";
-    CameraInitError["PermissionDismissed"] = "PermissionDismissed";
-    CameraInitError["InUse"] = "InUse";
-    CameraInitError["Overconstrained"] = "Overconstrained";
-    CameraInitError["UnknownError"] = "UnknownError";
-    CameraInitError["BrowserApiInaccessible"] = "BrowserApiInaccessible";
-    CameraInitError["NoDevices"] = "NoDevices";
-})(CameraInitError || (CameraInitError = {}));
 export class CameraInitErrorClass {
     constructor(value) {
         this.value = value;
@@ -51,11 +41,7 @@ CameraInitErrorClass.Overconstrained = new CameraInitErrorClass("Overconstrained
 CameraInitErrorClass.UnknownError = new CameraInitErrorClass("UnknownError");
 CameraInitErrorClass.BrowserApiInaccessible = new CameraInitErrorClass("BrowserApiInaccessible");
 CameraInitErrorClass.NoDevices = new CameraInitErrorClass("NoDevices");
-export var BrowserDeniedReason;
-(function (BrowserDeniedReason) {
-    BrowserDeniedReason["Browser"] = "Browser";
-    BrowserDeniedReason["User"] = "User";
-})(BrowserDeniedReason || (BrowserDeniedReason = {}));
+CameraInitErrorClass.DeviceNotFound = new CameraInitErrorClass("DeviceNotFound");
 export class BrowserDeniedReasonClass {
     constructor(value) {
         this.value = value;
@@ -69,13 +55,6 @@ export class BrowserDeniedReasonClass {
 }
 BrowserDeniedReasonClass.Browser = new BrowserDeniedReasonClass("Browser");
 BrowserDeniedReasonClass.User = new BrowserDeniedReasonClass("User");
-export var BrowserPermissionState;
-(function (BrowserPermissionState) {
-    BrowserPermissionState["Granted"] = "Granted";
-    BrowserPermissionState["Denied"] = "Denied";
-    BrowserPermissionState["Prompt"] = "Prompt";
-    BrowserPermissionState["Error"] = "Error";
-})(BrowserPermissionState || (BrowserPermissionState = {}));
 export class BrowserPermissionStateClass {
     constructor(value) {
         this.value = value;
@@ -91,13 +70,6 @@ BrowserPermissionStateClass.Granted = new BrowserPermissionStateClass("Granted")
 BrowserPermissionStateClass.Denied = new BrowserPermissionStateClass("Denied");
 BrowserPermissionStateClass.Prompt = new BrowserPermissionStateClass("Prompt");
 BrowserPermissionStateClass.Error = new BrowserPermissionStateClass("Error");
-export var PermissionsRetryable;
-(function (PermissionsRetryable) {
-    PermissionsRetryable["Yes"] = "Yes";
-    PermissionsRetryable["No"] = "No";
-    PermissionsRetryable["AfterReload"] = "AfterReload";
-    PermissionsRetryable["Unknown"] = "Unknown";
-})(PermissionsRetryable || (PermissionsRetryable = {}));
 export class PermissionsRetryableClass {
     constructor(value) {
         this.value = value;
@@ -113,13 +85,6 @@ PermissionsRetryableClass.Yes = new PermissionsRetryableClass("Yes");
 PermissionsRetryableClass.No = new PermissionsRetryableClass("No");
 PermissionsRetryableClass.AfterReload = new PermissionsRetryableClass("AfterReload");
 PermissionsRetryableClass.Unknown = new PermissionsRetryableClass("Unknown");
-export var BrowserType;
-(function (BrowserType) {
-    BrowserType["Chromium"] = "Chromium";
-    BrowserType["Firefox"] = "Firefox";
-    BrowserType["Safari"] = "Safari";
-    BrowserType["Unknown"] = "Unknown";
-})(BrowserType || (BrowserType = {}));
 export const EventRegistry = ['video-devicelist-update', 'log', 'permission-status-change'];
 export class CameraPermissionHandler {
     constructor() {
@@ -137,7 +102,7 @@ export class CameraPermissionHandler {
             listener(data); // Invoke listener with the correct type
         });
     }
-    getCameraPermissionState() {
+    getBrowserPermissionState() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -171,10 +136,13 @@ export class CameraPermissionHandler {
             }
         });
     }
-    stopCameraStream(stream, track) {
+    stopCameraByStream(stream, track) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
-            const streamCameraId = (_a = this.getMediaDeviceByStream(stream).videoDeviceId) === null || _a === void 0 ? void 0 : _a.deviceId;
+            const streamCameraId = (_a = this.getMediaDeviceByStream(stream).videoDevice) === null || _a === void 0 ? void 0 : _a.deviceId;
+            if (!streamCameraId) {
+                return CameraInitErrorClass.DeviceNotFound;
+            }
             if (!track) {
                 stream.getTracks().forEach(track => {
                     track.stop();
@@ -191,7 +159,7 @@ export class CameraPermissionHandler {
         return __awaiter(this, void 0, void 0, function* () {
             const res = this.activeStreams.get(cameraId);
             if (!res) {
-                return 'not found';
+                return CameraInitErrorClass.DeviceNotFound;
             }
             if (track) {
                 res.removeTrack(track);
@@ -204,7 +172,6 @@ export class CameraPermissionHandler {
         });
     }
     getPreferredCamera(videoDevices) {
-        this.emit('log', JSON.stringify(videoDevices));
         const environmentCamera = videoDevices.find(device => device.label.toLowerCase().includes('back') ||
             device.label.toLowerCase().includes('environment'));
         if (environmentCamera) {
@@ -228,7 +195,6 @@ export class CameraPermissionHandler {
     }
     cameraErrorMessageMapper(e) {
         const stringedError = String(e);
-        console.log('str', stringedError);
         if (!stringedError || !e.name) {
             return {
                 originalError: stringedError,
@@ -292,16 +258,16 @@ export class CameraPermissionHandler {
     cameraPermissionDeniedReason(deniedAfterMs, browserDeniedThreshold = 200) {
         return deniedAfterMs <= browserDeniedThreshold ? BrowserDeniedReasonClass.Browser : BrowserDeniedReasonClass.User;
     }
-    getVideoDevicePermissionWrapper() {
+    requestVideoDevice() {
         return __awaiter(this, arguments, void 0, function* (userMediaConstraints = { video: Object.assign({}, GlobalIdealCameraConstraints) }) {
             const start = performance.now();
-            const preRequestState = (yield this.getCameraPermissionState()).state;
+            const preRequestState = (yield this.getBrowserPermissionState()).state;
             try {
                 const stream = yield navigator.mediaDevices.getUserMedia(userMediaConstraints); //this.timeoutWrapper(5000);
                 const videoDevices = yield navigator.mediaDevices.enumerateDevices();
                 //console.log('getUserMedia', performance.now() - start);
                 const acceptedGetUserMediaTime = performance.now() - start;
-                const postRequestPermissionState = (yield this.getCameraPermissionState()).state;
+                const postRequestPermissionState = (yield this.getBrowserPermissionState()).state;
                 return {
                     permissionState: {
                         preRequest: preRequestState,
@@ -314,7 +280,7 @@ export class CameraPermissionHandler {
             }
             catch (e) {
                 const deniedGetUserMediaTime = performance.now() - start;
-                const postRequestPermissionState = (yield this.getCameraPermissionState()).state;
+                const postRequestPermissionState = (yield this.getBrowserPermissionState()).state;
                 return {
                     permissionState: {
                         preRequest: preRequestState,
@@ -327,7 +293,7 @@ export class CameraPermissionHandler {
             }
         });
     }
-    getDevicesWrapper() {
+    getVideoDevices() {
         return __awaiter(this, void 0, void 0, function* () {
             const start = performance.now();
             try {
@@ -351,8 +317,8 @@ export class CameraPermissionHandler {
     }
     getMediaDeviceByStream(stream) {
         const videoTrack = stream.getVideoTracks()[0];
-        const videoDeviceId = videoTrack ? videoTrack.getSettings() : null;
-        return { videoDeviceId };
+        const videoDevice = videoTrack ? videoTrack.getSettings() : null;
+        return { videoDevice: videoDevice };
     }
     startCamera(id, constraints) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -374,12 +340,12 @@ export class CameraPermissionHandler {
             if (!((_a = navigator === null || navigator === void 0 ? void 0 : navigator.mediaDevices) === null || _a === void 0 ? void 0 : _a.getUserMedia)) {
                 return CameraInitErrorClass.BrowserApiInaccessible;
             }
-            const devices = yield this.getDevicesWrapper();
+            const devices = yield this.getVideoDevices();
             if (devices.successful && devices.result.length === 0) {
                 return CameraInitErrorClass.NoDevices;
             }
-            const onLoadPermissionState = (yield this.getCameraPermissionState()).state;
-            const onLoadPermissionResult = yield this.getVideoDevicePermissionWrapper(constraints);
+            const onLoadPermissionState = (yield this.getBrowserPermissionState()).state;
+            const onLoadPermissionResult = yield this.requestVideoDevice(constraints);
             if (onLoadPermissionState === BrowserPermissionStateClass.Denied) {
                 return this.permissionDeniedHandler(onLoadPermissionResult);
             }
@@ -521,7 +487,7 @@ export class CameraPermissionHandler {
             if (!((_a = navigator === null || navigator === void 0 ? void 0 : navigator.mediaDevices) === null || _a === void 0 ? void 0 : _a.getUserMedia)) {
                 return CameraInitErrorClass.BrowserApiInaccessible;
             }
-            const devices = yield this.getDevicesWrapper();
+            const devices = yield this.getVideoDevices();
             if (devices.successful && devices.result.length === 0) {
                 return CameraInitErrorClass.NoDevices;
             }
@@ -533,7 +499,7 @@ export class CameraPermissionHandler {
             }
             if (navigator.mediaDevices.ondevicechange === null) {
                 navigator.mediaDevices.ondevicechange = () => __awaiter(this, void 0, void 0, function* () {
-                    const devices = yield this.getDevicesWrapper();
+                    const devices = yield this.getVideoDevices();
                     if (devices.successful) {
                         devices.result.forEach(dev => {
                             this.videoDevices.set(dev.deviceId, dev);
@@ -581,8 +547,8 @@ export class CameraPermissionHandler {
                 });
                 this.emit('log', 'Installed camera-browser-permission watcher');
             }
-            const onLoadPermissionState = (yield this.getCameraPermissionState()).state;
-            const onLoadPermissionResult = yield this.getVideoDevicePermissionWrapper(constraints);
+            const onLoadPermissionState = (yield this.getBrowserPermissionState()).state;
+            const onLoadPermissionResult = yield this.requestVideoDevice(constraints);
             this.onLoadPermissionResult = {
                 duration: onLoadPermissionResult.duration,
                 response: onLoadPermissionResult,
@@ -609,6 +575,7 @@ export class CameraPermissionHandler {
             request.result.devices.forEach(dev => {
                 this.videoDevices.set(dev.deviceId, dev);
             });
+            this.activeStreams.set(request.result.stream.id, request.result.stream);
             this.emit('video-devicelist-update', this.videoDevices);
             const grantedOnLoad = {
                 permissionGranted: true,

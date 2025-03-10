@@ -65,21 +65,12 @@ export interface CameraRequestDeniedWrapper {
     deniedBy: BrowserDeniedReasonClass;
     retryable: RequestRetryableBasic | RequestRetryableWithDetail;
     permissionState: BrowserPermissionStateClass;
-    request: null | FailedCameraRequest;
+    request: FailedCameraRequest;
 }
 export interface CameraRequestAcceptedWrapper {
     permissionGranted: true;
     permissionState: BrowserPermissionStateClass;
     request: SuccessfulCameraRequest;
-}
-export declare enum CameraInitError {
-    PermissionDenied = "PermissionDenied",
-    PermissionDismissed = "PermissionDismissed",
-    InUse = "InUse",
-    Overconstrained = "Overconstrained",
-    UnknownError = "UnknownError",
-    BrowserApiInaccessible = "BrowserApiInaccessible",
-    NoDevices = "NoDevices"
 }
 export declare class CameraInitErrorClass {
     readonly value: string;
@@ -91,12 +82,9 @@ export declare class CameraInitErrorClass {
     static readonly UnknownError: CameraInitErrorClass;
     static readonly BrowserApiInaccessible: CameraInitErrorClass;
     static readonly NoDevices: CameraInitErrorClass;
+    static readonly DeviceNotFound: CameraInitErrorClass;
     static from(value: string): CameraInitErrorClass | undefined;
     toString(): string;
-}
-export declare enum BrowserDeniedReason {
-    Browser = "Browser",
-    User = "User"
 }
 export declare class BrowserDeniedReasonClass {
     readonly value: string;
@@ -105,12 +93,6 @@ export declare class BrowserDeniedReasonClass {
     static readonly User: BrowserDeniedReasonClass;
     static from(value: string): BrowserDeniedReasonClass | undefined;
     toString(): string;
-}
-export declare enum BrowserPermissionState {
-    Granted = "Granted",
-    Denied = "Denied",
-    Prompt = "Prompt",
-    Error = "Error"
 }
 export declare class BrowserPermissionStateClass {
     readonly value: string;
@@ -122,12 +104,6 @@ export declare class BrowserPermissionStateClass {
     static from(value: string): BrowserPermissionStateClass | undefined;
     toString(): string;
 }
-export declare enum PermissionsRetryable {
-    Yes = "Yes",
-    No = "No",
-    AfterReload = "AfterReload",
-    Unknown = "Unknown"
-}
 export declare class PermissionsRetryableClass {
     readonly value: string;
     private constructor();
@@ -137,12 +113,6 @@ export declare class PermissionsRetryableClass {
     static readonly Unknown: PermissionsRetryableClass;
     static from(value: string): PermissionsRetryableClass | undefined;
     toString(): string;
-}
-export declare enum BrowserType {
-    Chromium = "Chromium",
-    Firefox = "Firefox",
-    Safari = "Safari",
-    Unknown = "Unknown"
 }
 export declare const EventRegistry: readonly ["video-devicelist-update", "log", "permission-status-change"];
 type EventDataMap = {
@@ -169,12 +139,12 @@ export declare class CameraPermissionHandler {
     constructor();
     on<K extends keyof EventDataMap>(eventName: K, listener: (data: EventDataMap[K]) => void): void;
     private emit;
-    getCameraPermissionState(): Promise<{
+    getBrowserPermissionState(): Promise<{
         state: BrowserPermissionStateClass;
         detail: string;
     }>;
-    stopCameraStream(stream: MediaStream, track?: MediaStreamTrack): Promise<void>;
-    stopCameraStreamById(cameraId: string, track?: MediaStreamTrack): Promise<"not found" | undefined>;
+    stopCameraByStream(stream: MediaStream, track?: MediaStreamTrack): Promise<CameraInitErrorClass | undefined>;
+    stopCameraStreamById(cameraId: string, track?: MediaStreamTrack): Promise<CameraInitErrorClass | undefined>;
     getPreferredCamera(videoDevices: MediaDeviceInfo[]): {
         facing: string;
         id: string;
@@ -182,8 +152,8 @@ export declare class CameraPermissionHandler {
     private cameraErrorMessageMapper;
     private getReloadButtonType;
     private cameraPermissionDeniedReason;
-    getVideoDevicePermissionWrapper(userMediaConstraints?: MediaStreamConstraints): Promise<SuccessfulCameraRequest | FailedCameraRequest>;
-    getDevicesWrapper(): Promise<{
+    requestVideoDevice(userMediaConstraints?: MediaStreamConstraints): Promise<SuccessfulCameraRequest | FailedCameraRequest>;
+    getVideoDevices(): Promise<{
         successful: true;
         result: MediaDeviceInfo[];
         duration: number;
@@ -193,7 +163,7 @@ export declare class CameraPermissionHandler {
         duration: number;
     }>;
     getMediaDeviceByStream(stream: MediaStream): {
-        videoDeviceId: MediaTrackSettings | null;
+        videoDevice: MediaTrackSettings | null;
     };
     startCamera(id?: string, constraints?: MediaStreamConstraints): Promise<CameraRequestAcceptedWrapper | CameraRequestDeniedWrapper | CameraInitErrorClass>;
     initHandler(constraints?: MediaStreamConstraints): Promise<CameraRequestAcceptedWrapper | CameraRequestDeniedWrapper | CameraInitErrorClass>;

@@ -8,6 +8,10 @@
 Permissify is a wrapper for the <a href="https://developer.mozilla.org/de/docs/Web/API/Navigator"><span>navigator</span></a> browser api.
 It greatly improves the developer experience by providing more detailed feedback.
 
+### Enjoy my work? :)
+
+<a style="font-size: 20px" href="https://buymeacoffee.com/laurenz_m">Buy me a coffee! ☕</a>
+
 
 ## ✨ Features
 

@@ -3,3 +3,4 @@ node_modules
 .idea
 test
 jest.config.js
+readme2.md

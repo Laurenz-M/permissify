@@ -178,7 +178,7 @@ export class CameraPermissionHandler {
         listener(data); // Invoke listener with the correct type
       });
   }
-  public async getCameraPermissionState(): Promise<{ state: BrowserPermissionStateClass, detail: string }> {
+  public async getBrowserPermissionState(): Promise<{ state: BrowserPermissionStateClass, detail: string }> {
     try {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
@@ -211,7 +211,7 @@ export class CameraPermissionHandler {
 
   }
 
-  public async stopCameraStream(stream: MediaStream, track?: MediaStreamTrack) {
+  public async stopCameraByStream(stream: MediaStream, track?: MediaStreamTrack) {
     const streamCameraId = this.getMediaDeviceByStream(stream).videoDevice?.deviceId;
     if(!streamCameraId) {
       return CameraInitErrorClass.DeviceNotFound;
@@ -242,7 +242,6 @@ export class CameraPermissionHandler {
     }
   }
   public getPreferredCamera(videoDevices: MediaDeviceInfo[]) {
-    this.emit('log',JSON.stringify(videoDevices));
     const environmentCamera = videoDevices.find(device =>
       device.label.toLowerCase().includes('back') ||
             device.label.toLowerCase().includes('environment')
@@ -275,7 +274,6 @@ export class CameraPermissionHandler {
 
   private cameraErrorMessageMapper(e: any): { originalError: string, mappedError: CameraInitErrorClass } {
     const stringedError = String(e);
-    console.log('str',stringedError)
     if(!stringedError || !e.name) {
       return {
         originalError: stringedError,
@@ -338,15 +336,15 @@ export class CameraPermissionHandler {
   private cameraPermissionDeniedReason(deniedAfterMs: number, browserDeniedThreshold = 200) {
     return deniedAfterMs <= browserDeniedThreshold ? BrowserDeniedReasonClass.Browser : BrowserDeniedReasonClass.User;
   }
-  public async getVideoDevicePermissionWrapper(userMediaConstraints: MediaStreamConstraints = { video: { ...GlobalIdealCameraConstraints}  }): Promise<SuccessfulCameraRequest | FailedCameraRequest> {
+  public async requestVideoDevice(userMediaConstraints: MediaStreamConstraints = { video: { ...GlobalIdealCameraConstraints}  }): Promise<SuccessfulCameraRequest | FailedCameraRequest> {
     const start = performance.now();
-    const preRequestState = (await this.getCameraPermissionState()).state;
+    const preRequestState = (await this.getBrowserPermissionState()).state;
     try {
       const stream = await navigator.mediaDevices.getUserMedia(userMediaConstraints);//this.timeoutWrapper(5000);
       const videoDevices = await navigator.mediaDevices.enumerateDevices();
       //console.log('getUserMedia', performance.now() - start);
       const acceptedGetUserMediaTime = performance.now() - start;
-      const postRequestPermissionState = (await this.getCameraPermissionState()).state;
+      const postRequestPermissionState = (await this.getBrowserPermissionState()).state;
       return {
         permissionState: {
           preRequest: preRequestState,
@@ -359,7 +357,7 @@ export class CameraPermissionHandler {
     }
     catch(e) {
       const deniedGetUserMediaTime = performance.now() - start;
-      const postRequestPermissionState = (await this.getCameraPermissionState()).state;
+      const postRequestPermissionState = (await this.getBrowserPermissionState()).state;
       return {
         permissionState: {
           preRequest: preRequestState,
@@ -371,7 +369,7 @@ export class CameraPermissionHandler {
       };
     }
   }
-  public async getDevicesWrapper(): Promise<{ successful: true, result: MediaDeviceInfo[], duration: number } | { successful: false, result: string, duration: number }> {
+  public async getVideoDevices(): Promise<{ successful: true, result: MediaDeviceInfo[], duration: number } | { successful: false, result: string, duration: number }> {
     const start = performance.now();
     try {
       const videoDevices = await navigator.mediaDevices.enumerateDevices();
@@ -413,12 +411,12 @@ export class CameraPermissionHandler {
     if(!navigator?.mediaDevices?.getUserMedia) {
       return CameraInitErrorClass.BrowserApiInaccessible
     }
-    const devices = await this.getDevicesWrapper()
+    const devices = await this.getVideoDevices()
     if(devices.successful && devices.result.length === 0) {
       return CameraInitErrorClass.NoDevices
     }
-    const onLoadPermissionState = (await this.getCameraPermissionState()).state;
-    const onLoadPermissionResult = await this.getVideoDevicePermissionWrapper(constraints);
+    const onLoadPermissionState = (await this.getBrowserPermissionState()).state;
+    const onLoadPermissionResult = await this.requestVideoDevice(constraints);
 
     if(onLoadPermissionState === BrowserPermissionStateClass.Denied) {
       return this.permissionDeniedHandler(onLoadPermissionResult)
@@ -559,7 +557,7 @@ export class CameraPermissionHandler {
     if(!navigator?.mediaDevices?.getUserMedia) {
       return CameraInitErrorClass.BrowserApiInaccessible
     }
-    const devices = await this.getDevicesWrapper()
+    const devices = await this.getVideoDevices()
     if(devices.successful && devices.result.length === 0) {
       return CameraInitErrorClass.NoDevices
     }
@@ -571,7 +569,7 @@ export class CameraPermissionHandler {
     }
     if(navigator.mediaDevices.ondevicechange === null) {
       navigator.mediaDevices.ondevicechange = async () => {
-        const devices = await this.getDevicesWrapper()
+        const devices = await this.getVideoDevices()
         if(devices.successful) {
           devices.result.forEach(dev => {
             this.videoDevices.set(dev.deviceId, dev)
@@ -619,8 +617,8 @@ export class CameraPermissionHandler {
       this.emit('log', 'Installed camera-browser-permission watcher')
     }
 
-    const onLoadPermissionState = (await this.getCameraPermissionState()).state;
-    const onLoadPermissionResult = await this.getVideoDevicePermissionWrapper(constraints);
+    const onLoadPermissionState = (await this.getBrowserPermissionState()).state;
+    const onLoadPermissionResult = await this.requestVideoDevice(constraints);
     this.onLoadPermissionResult = {
       duration: onLoadPermissionResult.duration,
       response: onLoadPermissionResult,
@@ -643,11 +641,12 @@ export class CameraPermissionHandler {
     return CameraInitErrorClass.UnknownError
   }
 
-  private permissionGrantedHandler(request: SuccessfulCameraRequest | FailedCameraRequest): CameraRequestDeniedWrapper | CameraRequestAcceptedWrapper | typeof CameraInitErrorClass.UnknownError {
+  private permissionGrantedHandler(request: SuccessfulCameraRequest | FailedCameraRequest): CameraRequestDeniedWrapper | CameraRequestAcceptedWrapper | CameraInitErrorClass {
     if(request.permissionGranted) {
       request.result.devices.forEach(dev => {
         this.videoDevices.set(dev.deviceId, dev)
       })
+      this.activeStreams.set(request.result.stream.id, request.result.stream);
       this.emit('video-devicelist-update', this.videoDevices);
       const grantedOnLoad: CameraRequestAcceptedWrapper = {
         permissionGranted: true,

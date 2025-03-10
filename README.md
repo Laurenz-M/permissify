@@ -24,12 +24,13 @@ It greatly improves the developer experience by providing more detailed feedback
 2. [Installation](#-installation)
 3. [Usage](#-usage)
 4. [API Reference](#-api-reference)
-   - [getVideoDevicePermissionWrapper()](#getvideodevicepermissionwrapperusermediaconstraints-mediastreamconstraints-promisea-hrefsuccessfulcamerarequestspansuccessfulcamerarequestspana--a-hreffailedcamerarequestspanfailedcamerarequestspana)
-   - [getDevicesWrapper()](#getdeviceswrapper-promise-successful-true-result-mediadeviceinfo-duration-number----successful-false-result-string-duration-number-)
+   - [on()](#oneventname--listener---void-void)
+   - [requestVideoDevice()](#getvideodevicepermissionwrapperusermediaconstraints-mediastreamconstraints-promisea-hrefsuccessfulcamerarequestspansuccessfulcamerarequestspana--a-hreffailedcamerarequestspanfailedcamerarequestspana)
+   - [getVideoDevices()](#getdeviceswrapper-promise-successful-true-result-mediadeviceinfo-duration-number----successful-false-result-string-duration-number-)
    - [getMediaDeviceByStream()](#getmediadevicebystreamstream-mediastream)
    - [startCamera()](#startcameraid-string-constraints-mediastreamconstraints-promisecamerarequestacceptedwrapper--camerarequestdeniedwrapper--camerainiterrorclass)
-   - [getCameraPermissionState()](#getcamerapermissionstate-promise-state-browserpermissionstateclass-detail-string-)
-   - [stopCameraStream()](#stopcamerastreamstream-mediastream-track-mediastreamtrack)
+   - [getBrowserPermissionState()](#getcamerapermissionstate-promise-state-browserpermissionstateclass-detail-string-)
+   - [stopCameraByStream()](#stopcamerastreamstream-mediastream-track-mediastreamtrack)
    - [stopCameraStreamById()](#stopcamerastreambyidcameraid-string-track-mediastreamtrack)
    - [getPreferredCamera()](#getpreferredcameravideodevices-mediadeviceinfo)
    - [initHandler()](#inithandlerconstraints-mediastreamconstraints---video-globalidealcameraconstraints--promisecamerarequestacceptedwrapper--camerarequestdeniedwrapper--camerainiterrorclass)
@@ -151,9 +152,68 @@ const handler = new CameraPermissionHandler();
 -->
 
 
-### getVideoDevicePermissionWrapper(userMediaConstraints?: <a href="https://udn.realityripple.com/docs/Web/API/MediaStreamConstraints"><span>MediaStreamConstraints</span></a>): Promise<<a href="#successfulcamerarequest"><span>SuccessfulCameraRequest</span></a> | <a href="#failedcamerarequest"><span>FailedCameraRequest</span></a>>
+### on(eventName: , listener: () => void): void
 
 Requests permission for video device access and returns the result, including the permission state before and after the request.
+
+This is considered to be the more "unguided approach" to request a videoDevice. Consider using [startCamera()](#startcameraid-string-constraints-a-hrefhttpsudnrealityripplecomdocswebapimediastreamconstraintsspanmediastreamconstraintsspana-promisecamerarequestacceptedwrapper--camerarequestdeniedwrapper--camerainiterrorclass)
+instead
+
+<style>
+  table {
+    width: 100%;
+  }
+  th, td {
+    padding: 8px;
+    border: 1px solid #ddd;
+  }
+  th {
+    text-align: left;
+  }
+  td:first-child {
+    white-space: nowrap;
+  }
+  td {
+    word-wrap: break-word;
+  }
+</style>
+
+#### Events:
+| Name                       | callback-type                                                                                                                                                             | Description                                                                                                                                                                          |
+|----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `video-devicelist-update`  | Map<string, <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaDeviceInfo">MediaDeviceInfo</a></span>>                                                     | Gets fired when the list of available video-devices changes. This can either happen when the list is first initalized or when the browser detects a new device/ a device is removed. |
+| `log`                      | string                                                                                                                                                                    | Gets fired for internal logs.                                                                                                                                                        |
+| `permission-status-change` | <pre>{ <br>  detail: string, <br>  state: <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaDeviceInfo">BrowserPermissionStateClass </a></span><br>}</pre> | Gets fired when the browser permission state changes. This could be the case when the user manually disables camera access in the browser.                                           |
+
+#### Parameters:
+| Parameter   | Type                                            | Description            |
+|-------------|-------------------------------------------------|------------------------|
+| `eventName` | [event-name] as string                          | The event to listen to |
+| `listener`  | (data: [callback-type] of [event-name]) => void | The event to listen to |
+
+#### Example:
+
+```ts
+import { CameraPermissionHandler } from "permissify";
+import { BrowserPermissionStateClass } from "permissify";
+
+const handler = new CameraPermissionHandler();
+handler.on('permission-status-change', (data: { detail: string, state: BrowserPermissionStateClass }) => {
+    console.log(data.state, data.detail)
+   //handle data
+})
+```
+
+#### Returns:
+- **void**
+---
+
+### requestVideoDevice(userMediaConstraints?: <a href="https://udn.realityripple.com/docs/Web/API/MediaStreamConstraints"><span>MediaStreamConstraints</span></a>): Promise<<a href="#successfulcamerarequest"><span>SuccessfulCameraRequest</span></a> | <a href="#failedcamerarequest"><span>FailedCameraRequest</span></a>>
+
+Requests permission for video device access and returns the result, including the permission state before and after the request.
+
+This is considered to be the more "unguided approach" to request a videoDevice. Consider using [startCamera()](#startcameraid-string-constraints-a-hrefhttpsudnrealityripplecomdocswebapimediastreamconstraintsspanmediastreamconstraintsspana-promisecamerarequestacceptedwrapper--camerarequestdeniedwrapper--camerainiterrorclass)
+instead
 
 #### Parameters:
 | Parameter             | Type                   | Description                                        |
@@ -164,7 +224,7 @@ Requests permission for video device access and returns the result, including th
 - **Promise<<span style="font-size: 12px;">[SuccessfulCameraRequest](#successfulcamerarequest)</span> | <span style="font-size: 12px;">[FailedCameraRequest](#failedcamerarequest)</span>>** - A promise that resolves with either a successful or failed camera request, along with permission state and duration.
 ---
 
-### getDevicesWrapper(): Promise<{ successful: true, result: <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaDeviceInfo">MediaDeviceInfo</a></span>[], duration: number } | { successful: false, result: string, duration: number }>
+### getVideoDevices(): Promise<{ successful: true, result: <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaDeviceInfo">MediaDeviceInfo</a></span>[], duration: number } | { successful: false, result: string, duration: number }>
 Gets a list of video devices and returns either a success with the device list or a failure with the error message.
 
 #### Parameters:
@@ -202,7 +262,7 @@ Starts the camera with the given device ID and constraints, and returns the resu
 
 ---
 
-### getCameraPermissionState(): Promise<{ state: [BrowserPermissionStateClass](#browserpermissionstateclass), detail: string }>
+### getBrowserPermissionState(): Promise<{ state: [BrowserPermissionStateClass](#browserpermissionstateclass), detail: string }>
 Checks the current permission state for camera access and returns the state along with a detailed message.
 
 #### Parameters:
@@ -213,7 +273,7 @@ None
 
 ---
 
-### stopCameraStream(stream: <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaStream">MediaStream</a></span>, track?: <span><a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack">MediaStreamTrack</a></span>)
+### stopCameraByStream(stream: <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaStream">MediaStream</a></span>, track?: <span><a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack">MediaStreamTrack</a></span>)
 Stops the given media stream or a specific track within the stream.
 
 #### Parameters:

@@ -151,52 +151,51 @@ const handler = new CameraPermissionHandler();
 -->
 
 
-
-### getVideoDevicePermissionWrapper(userMediaConstraints?: MediaStreamConstraints): Promise<<a href="#successfulcamerarequest"><span>SuccessfulCameraRequest</span></a> | <a href="#failedcamerarequest"><span>FailedCameraRequest</span></a>>
+### getVideoDevicePermissionWrapper(userMediaConstraints?: <a href="https://udn.realityripple.com/docs/Web/API/MediaStreamConstraints"><span>MediaStreamConstraints</span></a>): Promise<<a href="#successfulcamerarequest"><span>SuccessfulCameraRequest</span></a> | <a href="#failedcamerarequest"><span>FailedCameraRequest</span></a>>
 
 Requests permission for video device access and returns the result, including the permission state before and after the request.
 
 #### Parameters:
 | Parameter             | Type                   | Description                                        |
 |-----------------------|------------------------|----------------------------------------------------|
-| `userMediaConstraints` | [MediaStreamConstraints](#global-camera-constraints) | The constraints for accessing the media stream (optional) |
+| `userMediaConstraints` | <a href="https://udn.realityripple.com/docs/Web/API/MediaStreamConstraints"><span>MediaStreamConstraints</span></a> | The constraints for accessing the media stream (optional) |
 
 #### Returns:
 - **Promise<<span style="font-size: 12px;">[SuccessfulCameraRequest](#successfulcamerarequest)</span> | <span style="font-size: 12px;">[FailedCameraRequest](#failedcamerarequest)</span>>** - A promise that resolves with either a successful or failed camera request, along with permission state and duration.
 ---
 
-### getDevicesWrapper(): Promise<{ successful: true, result: [MediaDeviceInfo](#media-device-info)[], duration: number } | { successful: false, result: string, duration: number }>
+### getDevicesWrapper(): Promise<{ successful: true, result: <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaDeviceInfo">MediaDeviceInfo</a></span>[], duration: number } | { successful: false, result: string, duration: number }>
 Gets a list of video devices and returns either a success with the device list or a failure with the error message.
 
 #### Parameters:
 None
 
 #### Returns:
-- **Promise<{ successful: true, result: [MediaDeviceInfo](#media-device-info)[], duration: number } | { successful: false, result: string, duration: number }>** - A promise that resolves with either a successful response containing video devices or a failed response with an error message.
+- **Promise<{ successful: true, result: <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaDeviceInfo">MediaDeviceInfo</a></span>[], duration: number } | { successful: false, result: string, duration: number }>** - A promise that resolves with either a successful response containing video devices or a failed response with an error message.
 
 ---
 
-### getMediaDeviceByStream(stream: [MediaStream](#media-stream))
+### getMediaDeviceByStream(stream: <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaStream">MediaStream</a></span>)
 Extracts the video device ID from the given media stream.
 
 #### Parameters:
 | Parameter | Type       | Description                            |
 |-----------|------------|----------------------------------------|
-| `stream`  | [MediaStream](#media-stream) | The media stream to extract device info from |
+| `stream`  | <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaStream">MediaStream</a></span> | The media stream to extract device info from |
 
 #### Returns:
 - **{ videoDeviceId: any }** - The video device ID extracted from the media stream.
 
 ---
 
-### startCamera(id?: string, constraints?: [MediaStreamConstraints](#global-camera-constraints)): Promise<[CameraRequestAcceptedWrapper](#camera-request-accepted-wrapper) | [CameraRequestDeniedWrapper](#camera-request-denied-wrapper) | [CameraInitErrorClass](#camerainiterrorclass)>
+### startCamera(id?: string, constraints?: <a href="https://udn.realityripple.com/docs/Web/API/MediaStreamConstraints"><span>MediaStreamConstraints</span></a>): Promise<[CameraRequestAcceptedWrapper](#camera-request-accepted-wrapper) | [CameraRequestDeniedWrapper](#camera-request-denied-wrapper) | [CameraInitErrorClass](#camerainiterrorclass)>
 Starts the camera with the given device ID and constraints, and returns the result based on permission state.
 
 #### Parameters:
 | Parameter   | Type                   | Description                                      |
 |-------------|------------------------|--------------------------------------------------|
 | `id`        | string (optional)       | The ID of the video device to use (optional)     |
-| `constraints` | [MediaStreamConstraints](#global-camera-constraints) | The media stream constraints (optional)           |
+| `constraints` | <a href="https://udn.realityripple.com/docs/Web/API/MediaStreamConstraints"><span>MediaStreamConstraints</span></a> | The media stream constraints (optional)           |
 
 #### Returns:
 - **Promise<[CameraRequestAcceptedWrapper](#camerarequestacceptedwrapper) | [CameraRequestDeniedWrapper](#camera-request-denied-wrapper) | [CameraInitErrorClass](#camerainiterrorclass)>** - A promise that resolves with either a successful camera start response, a denied camera request, or an error.
@@ -214,54 +213,54 @@ None
 
 ---
 
-### stopCameraStream(stream: [MediaStream](#media-stream), track?: [MediaStreamTrack](#media-stream-track))
+### stopCameraStream(stream: <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaStream">MediaStream</a></span>, track?: <span><a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack">MediaStreamTrack</a></span>)
 Stops the given media stream or a specific track within the stream.
 
 #### Parameters:
 | Parameter | Type            | Description                                       |
 |-----------|-----------------|---------------------------------------------------|
-| `stream`  | [MediaStream](#media-stream)     | The media stream to stop                          |
-| `track`   | [MediaStreamTrack](#media-stream-track) (optional) | A specific track to remove from the stream (optional) |
+| `stream`  | <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaStream">MediaStream</a></span>     | The media stream to stop                          |
+| `track`   | <span><a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack">MediaStreamTrack</a></span> (optional) | A specific track to remove from the stream (optional) |
 
 #### Returns:
 - **void** - Stops the tracks in the provided stream, or a specific track if provided.
 
 ---
 
-### stopCameraStreamById(cameraId: string, track?: [MediaStreamTrack](#media-stream-track))
+### stopCameraStreamById(cameraId: string, track?: <span><a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack">MediaStreamTrack</a></span>)
 Stops the camera stream associated with the given camera ID, or stops a specific track in the stream.
 
 #### Parameters:
 | Parameter  | Type                | Description                                       |
 |------------|---------------------|---------------------------------------------------|
 | `cameraId` | string              | The ID of the camera stream to stop               |
-| `track`    | [MediaStreamTrack](#media-stream-track) (optional) | A specific track to remove from the stream (optional) |
+| `track`    | <span><a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack">MediaStreamTrack</a></span> (optional) | A specific track to remove from the stream (optional) |
 
 #### Returns:
 - **string | void** - Returns 'not found' if the camera ID doesn't exist, or stops the tracks in the stream.
 
 ---
 
-### getPreferredCamera(videoDevices: [MediaDeviceInfo](#media-device-info)[])
+### getPreferredCamera(videoDevices: <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaDeviceInfo">MediaDeviceInfo</a></span>[])
 Determines the preferred camera (environmental or front) from a list of available video devices.
 
 #### Parameters:
 | Parameter         | Type              | Description                                           |
 |-------------------|-------------------|-------------------------------------------------------|
-| `videoDevices`    | [MediaDeviceInfo[]](#media-device-info) | An array of available video devices                   |
+| `videoDevices`    | <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaDeviceInfo">MediaDeviceInfo</a></span> | An array of available video devices                   |
 
 #### Returns:
 - **{ facing: string, id: string }** - Returns the preferred camera's facing direction ('environment', 'front', or 'unknown') and the device ID of the camera.
 
 ---
 
-### initHandler(constraints: [MediaStreamConstraints](#globalcameraconstraints) = { video: GlobalIdealCameraConstraints }): Promise<[CameraRequestAcceptedWrapper](#camerarequestacceptedwrapper) | [CameraRequestDeniedWrapper](#camerarequestdeniedwrapper) | [CameraInitErrorClass](#camerainiterrorclass)>
+### initHandler(constraints: <a href="https://udn.realityripple.com/docs/Web/API/MediaStreamConstraints"><span>MediaStreamConstraints</span></a> = { video: GlobalIdealCameraConstraints }): Promise<[CameraRequestAcceptedWrapper](#camerarequestacceptedwrapper) | [CameraRequestDeniedWrapper](#camerarequestdeniedwrapper) | [CameraInitErrorClass](#camerainiterrorclass)>
 Initializes the camera and handles permission states, device detection, and updates for the camera access.
 
 #### Parameters:
 | Parameter     | Type                 | Description                                       |
 |---------------|----------------------|---------------------------------------------------|
-| `constraints` | [MediaStreamConstraints](#globalcameraconstraints) (optional) | The constraints for the media stream (default is GlobalIdealCameraConstraints) |
+| `constraints` | <a href="https://udn.realityripple.com/docs/Web/API/MediaStreamConstraints"><span>MediaStreamConstraints</span></a> (optional) | The constraints for the media stream (default is GlobalIdealCameraConstraints) |
 
 #### Returns:
 - **Promise<[CameraRequestAcceptedWrapper](#camerarequestacceptedwrapper) | [CameraRequestDeniedWrapper](#camerarequestdeniedwrapper) | [CameraInitErrorClass](#camerainiterrorclass)>** - A promise that resolves with the appropriate response, either an accepted wrapper, denied wrapper, or error.
@@ -322,7 +321,7 @@ Represents a successful camera request, containing the stream and device informa
 <pre>
 {
   stream: <span style="font-size: 12px;"><a href="#successfulcamerarequestresult">MediaStream</a></span>,
-  devices: <span style="font-size: 12px;"><a href="#successfulcamerarequestresult">MediaDeviceInfo</a>[]</span>,
+  devices: <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaDeviceInfo">MediaDeviceInfo</a></span>[],
 }
 </pre>>
 

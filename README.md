@@ -98,7 +98,7 @@ More advanced example:
 
 ```ts
 import { CameraPermissionHandler } from "permissify";
-import { CameraInitErrorClass } from "./index";
+import { CameraInitErrorClass } from "permissify";
 
 const handler = new CameraPermissionHandler();
 

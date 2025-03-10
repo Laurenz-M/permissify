@@ -55,7 +55,7 @@ export interface CameraRequestDeniedWrapper {
   retryable: RequestRetryableBasic | RequestRetryableWithDetail,
   permissionState: BrowserPermissionStateClass,
   //if Permissionstate was already denied, no request will be sent => null
-  request: null | FailedCameraRequest
+  request: FailedCameraRequest
 }
 export interface CameraRequestAcceptedWrapper {
   permissionGranted: true,
@@ -63,15 +63,6 @@ export interface CameraRequestAcceptedWrapper {
   request: SuccessfulCameraRequest
 }
 
-export enum CameraInitError {
-  PermissionDenied = 'PermissionDenied',
-  PermissionDismissed = 'PermissionDismissed',
-  InUse = 'InUse',
-  Overconstrained = 'Overconstrained',
-  UnknownError = 'UnknownError',
-  BrowserApiInaccessible = 'BrowserApiInaccessible',
-  NoDevices = 'NoDevices'
-}
 
 export class CameraInitErrorClass {
   private constructor(public readonly value: string) {}
@@ -94,10 +85,6 @@ export class CameraInitErrorClass {
   }
 }
 
-export enum BrowserDeniedReason {
-    Browser = 'Browser',
-    User = 'User'
-}
 export class BrowserDeniedReasonClass {
   private constructor(public readonly value: string) {}
 
@@ -114,12 +101,7 @@ export class BrowserDeniedReasonClass {
   }
 }
 
-export enum BrowserPermissionState {
-    Granted = 'Granted',
-    Denied = 'Denied',
-    Prompt = 'Prompt',
-  Error = 'Error'
-}
+
 
 export class BrowserPermissionStateClass {
   private constructor(public readonly value: string) {}
@@ -139,12 +121,7 @@ export class BrowserPermissionStateClass {
   }
 }
 
-export enum PermissionsRetryable {
-    Yes = 'Yes',
-    No = 'No',
-    AfterReload = 'AfterReload',
-    Unknown = 'Unknown'
-}
+
 
 export class PermissionsRetryableClass {
   private constructor(public readonly value: string) {}
@@ -162,12 +139,6 @@ export class PermissionsRetryableClass {
   toString(): string {
     return this.value;
   }
-}
-export enum BrowserType {
-    Chromium = 'Chromium',
-    Firefox = 'Firefox',
-    Safari = 'Safari',
-    Unknown = 'Unknown'
 }
 export const EventRegistry = ['video-devicelist-update', 'log', 'permission-status-change'] as const
 

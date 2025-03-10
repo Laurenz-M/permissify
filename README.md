@@ -528,6 +528,12 @@ npm install
 
 ---
 
+## 📝 Changelog
+
+- Version 1.1.0: Change function names and add documentation
+
+---
+
 ## 🤝 Contributing
 
 1. Fork the repository

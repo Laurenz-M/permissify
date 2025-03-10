@@ -74,6 +74,7 @@ export class CameraInitErrorClass {
   static readonly UnknownError = new CameraInitErrorClass("UnknownError");
   static readonly BrowserApiInaccessible = new CameraInitErrorClass("BrowserApiInaccessible");
   static readonly NoDevices = new CameraInitErrorClass("NoDevices");
+  static readonly DeviceNotFound = new CameraInitErrorClass("DeviceNotFound");
 
 
   static from(value: string): CameraInitErrorClass | undefined {
@@ -211,7 +212,10 @@ export class CameraPermissionHandler {
   }
 
   public async stopCameraStream(stream: MediaStream, track?: MediaStreamTrack) {
-    const streamCameraId = this.getMediaDeviceByStream(stream).videoDeviceId?.deviceId;
+    const streamCameraId = this.getMediaDeviceByStream(stream).videoDevice?.deviceId;
+    if(!streamCameraId) {
+      return CameraInitErrorClass.DeviceNotFound;
+    }
     if(!track) {
       stream.getTracks().forEach(track => {
         track.stop();
@@ -226,7 +230,7 @@ export class CameraPermissionHandler {
   public async stopCameraStreamById(cameraId: string, track?: MediaStreamTrack) {
     const res = this.activeStreams.get(cameraId);
     if(!res) {
-      return 'not found';
+      return CameraInitErrorClass.DeviceNotFound;
     }
     if(track) {
       res.removeTrack(track);
@@ -389,8 +393,8 @@ export class CameraPermissionHandler {
   }
   public getMediaDeviceByStream(stream: MediaStream) {
     const videoTrack = stream.getVideoTracks()[0];
-    const videoDeviceId = videoTrack ? videoTrack.getSettings() : null;
-    return { videoDeviceId };
+    const videoDevice = videoTrack ? videoTrack.getSettings() : null;
+    return { videoDevice: videoDevice };
   }
   public async startCamera(id?: string, constraints?: MediaStreamConstraints): Promise<CameraRequestAcceptedWrapper | CameraRequestDeniedWrapper | CameraInitErrorClass> {
     const initalConstraints = {

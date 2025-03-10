@@ -5,15 +5,25 @@
 [![Downloads](https://img.shields.io/npm/dt/permissify.svg)](https://www.npmjs.com/package/permissify)
 <!--[![Build Status](https://img.shields.io/github/actions/workflow/status/Laurenz-M/permissify/ci.yml)](https://github.com/Laurenz-M/permissify/actions)-->
 
-A short description of what this package does.
+Permissify is a wrapper for the <a href="https://developer.mozilla.org/de/docs/Web/API/Navigator"><span>navigator</span></a> browser api.
+It greatly improves the developer experience by providing more detailed feedback.
+
+
+## ✨ Features
+
+- ### 🚀 Works on all browsers
+- ### 🔥 Framework for convenient camera usage
+- ### ✅ Classes as Enums: strongly typed and usable with <a href="https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Operators/instanceof"><span>instanceof</span></a>
+- ### 🔧 Strongly typed and amazing IntelliSense via discriminated unions(tagged unions)
+
+---
 
 # Table of Contents
 
 1. [Introduction](#-introduction)
-2. [Getting Started](#-getting-started)
-3. [Installation](#-installation)
-4. [Usage](#-usage)
-5. [API Reference](#-api-reference)
+2. [Installation](#-installation)
+3. [Usage](#-usage)
+4. [API Reference](#-api-reference)
    - [getVideoDevicePermissionWrapper()](#getvideodevicepermissionwrapperusermediaconstraints-mediastreamconstraints-promisea-hrefsuccessfulcamerarequestspansuccessfulcamerarequestspana--a-hreffailedcamerarequestspanfailedcamerarequestspana)
    - [getDevicesWrapper()](#getdeviceswrapper-promise-successful-true-result-mediadeviceinfo-duration-number----successful-false-result-string-duration-number-)
    - [getMediaDeviceByStream()](#getmediadevicebystreamstream-mediastream)
@@ -23,7 +33,7 @@ A short description of what this package does.
    - [stopCameraStreamById()](#stopcamerastreambyidcameraid-string-track-mediastreamtrack)
    - [getPreferredCamera()](#getpreferredcameravideodevices-mediadeviceinfo)
    - [initHandler()](#inithandlerconstraints-mediastreamconstraints---video-globalidealcameraconstraints--promisecamerarequestacceptedwrapper--camerarequestdeniedwrapper--camerainiterrorclass)
-6. [Type Reference](#-api-reference-types)
+5. [Type Reference](#-api-reference-types)
    - [ResolutionTable](#resolution-table-resolution16by9table)
    - [GlobalCameraConstraints](#global-camera-constraints-globalidealcameraconstraints)
    - [FailedCameraRequest](#failedcamerarequest)
@@ -38,35 +48,25 @@ A short description of what this package does.
    - [CameraInitErrorClass](#camerainiterrorclass)
    - [BrowserDeniedReasonClass](#browserdeniedreasonclass)
    - [BrowserPermissionStateClass](#browserpermissionstateclass)
-7. [Examples](#-examples)
-8. [Contributing](#-contributing)
-9. [Changelog](#-changelog) 
-10. [Support](#-contact--support)
-11. [License](#-license)
+6. [Examples](#-examples)
+7. [Contributing](#-contributing)
+8. [Changelog](#-changelog) 
+9. [Support](#-contact--support)
+10. [License](#-license)
 
-
-
-## ✨ Features
-
-- 🚀 Feature 1
-- 🔥 Feature 2
-- ✅ Feature 3
-- 🔧 Feature 4
-
----
 
 ## 📦 Installation
 
 Install via npm:
 
 ```sh
-npm install permissify
+   npm install permissify
 ```
 
 Or using yarn:
 
 ```sh
-yarn add permissify
+   yarn add permissify
 ```
 
 ---
@@ -76,7 +76,7 @@ yarn add permissify
 Basic example:
 
 ```ts
-import {CameraPermissionHandler} from "permissify";
+import { CameraPermissionHandler } from "permissify";
 
 const handler = new CameraPermissionHandler();
 
@@ -96,8 +96,8 @@ onMounted(async () => {
 More advanced example:
 
 ```ts
-import {CameraPermissionHandler} from "permissify";
-import {CameraInitErrorClass} from "./index";
+import { CameraPermissionHandler } from "permissify";
+import { CameraInitErrorClass } from "./index";
 
 const handler = new CameraPermissionHandler();
 
@@ -184,7 +184,7 @@ Extracts the video device ID from the given media stream.
 | `stream`  | <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaStream">MediaStream</a></span> | The media stream to extract device info from |
 
 #### Returns:
-- **{ videoDeviceId: any }** - The video device ID extracted from the media stream.
+- **{ videoDevice: <span><a href="https://developer.mozilla.org/de/docs/Web/API/MediaTrackSettings">MediaTrackSettings</a></span> | null }** - The video device settings extracted from the media stream.
 
 ---
 
@@ -223,7 +223,7 @@ Stops the given media stream or a specific track within the stream.
 | `track`   | <span><a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack">MediaStreamTrack</a></span> (optional) | A specific track to remove from the stream (optional) |
 
 #### Returns:
-- **void** - Stops the tracks in the provided stream, or a specific track if provided.
+- **<span><a href="#camerainiterrorclass">CameraInitErrorClass</a></span> | void** - Returns a <span><a href="#camerainiterrorclass">CameraInitErrorClass</a></span> if the camera ID doesn't exist, or stops the camera/ a specific track if provided.
 
 ---
 
@@ -237,7 +237,7 @@ Stops the camera stream associated with the given camera ID, or stops a specific
 | `track`    | <span><a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack">MediaStreamTrack</a></span> (optional) | A specific track to remove from the stream (optional) |
 
 #### Returns:
-- **string | void** - Returns 'not found' if the camera ID doesn't exist, or stops the tracks in the stream.
+- **<span><a href="#camerainiterrorclass">CameraInitErrorClass</a></span> | void** - Returns a <span><a href="#camerainiterrorclass">CameraInitErrorClass</a></span> if the camera ID doesn't exist, or stops the tracks in the stream.
 
 ---
 
@@ -346,46 +346,37 @@ Represents a successful camera request, including permission states and the resu
 ### `RequestRetryableBasic`
 Represents a request that can be retried, indicating if the retry is possible.
 
-```ts
+<pre>
 {
-  value: "Yes" | "No",
+  value: <span style="font-size: 12px;"><a href="#permissionretryableclass">PermissionRetryableClass.Yes</a></span> | <span style="font-size: 12px;"><a href="#permissionretryableclass">PermissionRetryableClass.No</a></span>,
   detail: null
 }
-```
+</pre>
 
 ---
 
 ### `RequestRetryableAfterReload`
 Describes a retryable request that can only be retried after a reload, specifying the trigger for reload.
 
-```ts
+<pre>
 {
-  value: "AfterReload",
+  value: <span style="font-size: 12px;"><a href="#permissionretryableclass">PermissionRetryableClass.AfterReload</a></span>,
   detail: 'browser-button' | 'any-button'
 }
-```
+</pre>
 
 ---
 
 ### `RequestRetryableUnknown`
 Describes a retryable request with an unknown status.
 
-```ts
+<pre>
 {
-  value: "Unknown",
+  value: <span style="font-size: 12px;"><a href="#permissionretryableclass">PermissionRetryableClass.Unknown</a></span>,
   detail: null
 }
-```
-
----
-
-### `RequestRetryableWithDetail`
-A union type that combines `RequestRetryableUnknown` and `RequestRetryableAfterReload`.
-<pre>
-  <span style="font-size: 12px;"><a href="#requestretryableunknown">RequestRetryableUnknown</a></span> | <span style="font-size: 12px;"><a href="#requestretryableafterreload">RequestRetryableAfterReload</a></span>,
 </pre>
 
----
 
 ### `CameraRequestDeniedWrapper`
 Represents a denied camera request with details about the denial reason, retry status, and permission state.
@@ -447,9 +438,16 @@ class BrowserDeniedReasonClass {
 ### `BrowserPermissionStateClass`
 Represents the permission state of the browser, with values like `Granted`, `Denied`, `Prompt`, etc.
 
-
-
 ---
+
+```ts
+export class PermissionsRetryableClass {
+  static readonly Yes = new PermissionsRetryableClass("Yes");
+  static readonly No = new PermissionsRetryableClass("No");
+  static readonly AfterReload = new PermissionsRetryableClass("AfterReload");
+  static readonly Unknown = new PermissionsRetryableClass("Unknown");
+}
+```
 
 ## 🎯 Examples
 
@@ -482,7 +480,7 @@ npm install
 
 ## 📜 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE.txt) file for details.
 
 ---
 

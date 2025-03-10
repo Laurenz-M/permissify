@@ -416,7 +416,7 @@ export class CameraPermissionHandler {
       return CameraInitErrorClass.NoDevices
     }
     const onLoadPermissionState = (await this.getBrowserPermissionState()).state;
-    const onLoadPermissionResult = await this.requestVideoDevice(constraints);
+    const onLoadPermissionResult = await this.requestVideoDevice(initalConstraints);
 
     if(onLoadPermissionState === BrowserPermissionStateClass.Denied) {
       return this.permissionDeniedHandler(onLoadPermissionResult)
